@@ -35,12 +35,27 @@ impl DerefMut for NotificationHandle {
 }
 
 pub(crate) fn show_notification(notification: &Notification) -> Result<NotificationHandle> {
-    mac_notification_sys::Notification::default()
+    let noti = mac_notification_sys::Notification::default()
         .title(notification.summary.as_str())
         .message(&notification.body)
         .maybe_subtitle(notification.subtitle.as_deref())
-        .maybe_sound(notification.sound_name.as_deref())
-        .send()?;
+        .maybe_sound(notification.sound_name.as_deref());
+
+    if !notification.actions.is_empty() {
+        let action = notification.actions.first().cloned();
+        let action = action.unwrap_or("Click".to_string());
+        let response = noti
+            .main_button(mac_notification_sys::MainButton::SingleAction(action))
+            .send()?;
+
+        match response {
+            mac_notification_sys::NotificationResponse::None => {}
+            mac_notification_sys::NotificationResponse::ActionButton(_) => todo!(),
+            mac_notification_sys::NotificationResponse::CloseButton(_) => todo!(),
+            mac_notification_sys::NotificationResponse::Click => todo!(),
+            mac_notification_sys::NotificationResponse::Reply(_) => todo!(),
+        }
+    }
 
     Ok(NotificationHandle::new(notification.clone()))
 }
